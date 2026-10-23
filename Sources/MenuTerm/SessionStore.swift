@@ -9,15 +9,22 @@ struct SessionConfig: Codable, Equatable {
     var autostart: Bool = true
     /// Run through `zsh -lic` (loads .zshrc: pyenv/nvm PATH etc.). Off = `zsh -lc`.
     var interactive: Bool = true
+    /// Create `directory` (mkdir -p) before the shell starts if it does not exist.
+    var createDirectory: Bool = false
+    /// The one template session the menu offers as "open a new copy" (see AppDelegate.spawnFavorite).
+    var favorite: Bool = false
 
     init(id: UUID = UUID(), name: String, command: String, directory: String? = nil,
-         autostart: Bool = true, interactive: Bool = true) {
+         autostart: Bool = true, interactive: Bool = true,
+         createDirectory: Bool = false, favorite: Bool = false) {
         self.id = id
         self.name = name
         self.command = command
         self.directory = directory
         self.autostart = autostart
         self.interactive = interactive
+        self.createDirectory = createDirectory
+        self.favorite = favorite
     }
 
     // Tolerant decoding: keys added in later versions fall back to their defaults.
@@ -29,6 +36,8 @@ struct SessionConfig: Codable, Equatable {
         directory = try c.decodeIfPresent(String.self, forKey: .directory)
         autostart = try c.decodeIfPresent(Bool.self, forKey: .autostart) ?? true
         interactive = try c.decodeIfPresent(Bool.self, forKey: .interactive) ?? true
+        createDirectory = try c.decodeIfPresent(Bool.self, forKey: .createDirectory) ?? false
+        favorite = try c.decodeIfPresent(Bool.self, forKey: .favorite) ?? false
     }
 }
 
@@ -73,6 +82,12 @@ final class SessionStore {
 
     func remove(id: UUID) {
         configs.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Replaces the whole list (used after bulk edits such as clearing other favorites).
+    func replaceAll(_ all: [SessionConfig]) {
+        configs = all
         save()
     }
 }
